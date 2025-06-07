@@ -11,6 +11,9 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use App\Models\Penelitian;
+use App\Models\Role;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -66,7 +69,7 @@ class User extends Authenticatable
     {
         return $this->hasRole('Admin LPPM');
     }
-    
+
     public function isDosen(): bool
     {
         return $this->hasRole('Dosen');
@@ -83,5 +86,25 @@ class User extends Authenticatable
         }
 
         return false;
+    }
+    public function penelitians(): HasMany
+    {
+        return $this->hasMany(Penelitian::class);
+    }
+
+    /**
+     * Get jumlah penelitian user
+     */
+    public function getJumlahPenelitianAttribute(): int
+    {
+        return $this->penelitians()->count();
+    }
+
+    /**
+     * Get penelitian yang disetujui
+     */
+    public function getPenelitianDisetujuiAttribute()
+    {
+        return $this->penelitians()->disetujui();
     }
 }

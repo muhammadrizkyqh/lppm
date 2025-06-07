@@ -18,6 +18,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Filament\Dosen\Widgets\DosenPenelitianStatsWidget;
 
 class DosenPanelProvider extends PanelProvider
 {
@@ -42,6 +43,7 @@ class DosenPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Dosen/Widgets'), for: 'App\\Filament\\Dosen\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
+                DosenPenelitianStatsWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
