@@ -73,6 +73,11 @@ class Proposal extends Model implements HasMedia
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     public function approvedBy()
     {
         return $this->belongsTo(User::class, 'approved_by');
@@ -96,6 +101,16 @@ class Proposal extends Model implements HasMedia
     public function seminars()
     {
         return $this->hasMany(Seminar::class);
+    }
+
+    public function contracts()
+    {
+        return $this->hasMany(Contract::class);
+    }
+
+    public function publicationFundings()
+    {
+        return $this->hasMany(PublicationFunding::class);
     }
 
     // Media Collections
@@ -158,5 +173,10 @@ class Proposal extends Model implements HasMedia
         }
 
         return round(($completed / count($steps)) * 100);
+    }
+
+    public function getTitleWithResearcherAttribute(): string
+    {
+        return $this->title . ' - ' . $this->user->name;
     }
 }

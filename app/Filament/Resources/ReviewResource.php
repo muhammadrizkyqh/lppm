@@ -19,11 +19,62 @@ class ReviewResource extends Resource
 {
     protected static ?string $model = Review::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-star';
+    protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
     protected static ?string $navigationLabel = 'Review Proposal';
     protected static ?string $modelLabel = 'Review';
     protected static ?string $pluralModelLabel = 'Review';
-    protected static ?string $navigationGroup = 'Review & Penilaian';
+    protected static ?string $navigationGroup = 'REVIEW & EVALUASI';
+    protected static ?int $navigationSort = 1;
+
+    // Permission checking for reviewers and admin
+    public static function canAccess(array $parameters = []): bool
+    {
+        return auth()->user()->can('conduct_review') || auth()->user()->can('assign_reviewer');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->can('assign_reviewer'); // Only admin can assign reviews
+    }
+
+    public static function canEdit($record): bool
+    {
+        // Admin can edit all, reviewer can edit own reviews
+        if (auth()->user()->hasRole('admin')) {
+            return auth()->user()->can('assign_reviewer');
+        }
+        
+        return auth()->user()->can('conduct_review') && $record->reviewer_id === auth()->id();
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()->can('assign_reviewer'); // Only admin can delete reviews
+    }
+
+    public static function canView($record): bool
+    {
+        // Admin can view all, reviewer can view own reviews
+        if (auth()->user()->hasRole('admin')) {
+            return true;
+        }
+        
+        return $record->reviewer_id === auth()->id();
+    }
+
+    // Query scoping berdasarkan role
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('pimpinan')) {
+            // Admin dan pimpinan dapat melihat semua review
+            return $query;
+        }
+        
+        // Reviewer hanya melihat review yang ditugaskan
+        return $query->where('reviewer_id', auth()->id());
+    }
 
     public static function form(Form $form): Form
     {
