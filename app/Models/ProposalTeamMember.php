@@ -17,6 +17,13 @@ class ProposalTeamMember extends Model
         'nim',
         'member_type',
         'role',
+        'position',
+        'department',
+        'expertise',
+        'phone',
+        'email',
+        'study_program',
+        'semester',
     ];
 
     // Relationships

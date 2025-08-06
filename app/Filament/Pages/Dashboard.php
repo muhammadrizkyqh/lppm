@@ -11,6 +11,7 @@ class Dashboard extends BaseDashboard
 {
     protected static ?string $navigationIcon = 'heroicon-o-home';
     protected static ?string $title = 'Dashboard LPPM';
+    protected static ?int $navigationSort = -1;
 
     public function getWidgets(): array
     {

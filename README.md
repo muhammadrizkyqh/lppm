@@ -1,10 +1,51 @@
 # Sistem Informasi LPPM STAI Ali bin Abi Thalib Surabaya
 
-## Deskripsi Proyek
+## 🎯 Deskripsi Proyek
 
 Platform digital terintegrasi untuk mengelola seluruh siklus kegiatan penelitian dan pengabdian kepada masyarakat menggunakan Laravel dan FilamentPHP. Sistem ini bertujuan untuk menggantikan proses manual yang ada dengan fokus pada efisiensi alur kerja, manajemen dokumen, dan pelaporan internal.
 
-## Fitur Utama
+## 🚀 Quick Start
+
+### **Mulai Testing (5 Menit)**
+```bash
+# Start server
+php artisan serve
+
+# Akses admin panel
+http://localhost:8000/admin
+
+# Login default users:
+# Admin: admin@stai-ali.ac.id / password123
+# Dosen: dosen@stai-ali.ac.id / password123
+# Reviewer: reviewer@stai-ali.ac.id / password123
+# Pimpinan: pimpinan@stai-ali.ac.id / password123
+```
+
+📖 **Panduan Lengkap:**
+- 📋 [**FLOW_SISTEM_LPPM.md**](./FLOW_SISTEM_LPPM.md) - Flow lengkap sistem
+- 🧪 [**TESTING_GUIDE.md**](./TESTING_GUIDE.md) - Panduan testing A-Z
+- ⚡ [**QUICK_START.md**](./QUICK_START.md) - Quick start guide
+
+## 🔄 Flow Sistem Overview
+
+### **Alur Utama (8 Tahap)**
+```
+1. SETUP → 2. PROPOSAL → 3. REVIEW → 4. APPROVE → 5. KONTRAK → 6. MONITORING → 7. SEMINAR → 8. PUBLIKASI
+```
+
+### **Roles & Responsibilities**
+- 👤 **Admin LPPM:** Master data, approval, konfirmasi dana/monitoring
+- 📝 **Dosen:** Pengajuan proposal, kelola tim, upload dokumen/laporan
+- 👨‍🏫 **Reviewer:** Review & nilai proposal, beri rekomendasi
+- 🏛️ **Pimpinan:** Dashboard monitoring, laporan capaian
+
+### **Status Workflow**
+- **Proposal:** `draft → submitted → under_review → approved/rejected`
+- **Kontrak:** `draft → signed → active → completed`
+- **Pencairan:** `stage_1 (50%) → stage_2 (25%) → stage_3 (25%)`
+- **Monitoring:** `monitoring_1 → monitoring_2 → laporan_akhir`
+
+## ✨ Fitur Utama
 
 ### 1. Autentikasi dan Manajemen Pengguna
 - Sistem login multi-role (Dosen, Admin LPPM, Reviewer, Pimpinan)

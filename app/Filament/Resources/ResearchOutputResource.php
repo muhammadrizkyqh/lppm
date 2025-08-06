@@ -22,7 +22,66 @@ class ResearchOutputResource extends Resource
     protected static ?string $navigationLabel = 'Luaran Penelitian';
     protected static ?string $modelLabel = 'Luaran Penelitian';
     protected static ?string $pluralModelLabel = 'Luaran Penelitian';
-    protected static ?string $navigationGroup = 'Manajemen Luaran';
+    protected static ?string $navigationGroup = 'LUARAN & PUBLIKASI';
+    protected static ?int $navigationSort = 1;
+
+    // Permission checking for research outputs
+    public static function canAccess(array $parameters = []): bool
+    {
+        return auth()->user()->can('upload_research_output') || auth()->user()->can('verify_research_output');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->can('upload_research_output');
+    }
+
+    public static function canEdit($record): bool
+    {
+        // Admin can edit all, dosen can edit own outputs
+        if (auth()->user()->hasRole('admin')) {
+            return auth()->user()->can('verify_research_output');
+        }
+        
+        return auth()->user()->can('upload_research_output') && $record->proposal->user_id === auth()->id();
+    }
+
+    public static function canDelete($record): bool
+    {
+        // Admin can delete all, dosen can delete own outputs if not verified
+        if (auth()->user()->hasRole('admin')) {
+            return auth()->user()->can('verify_research_output');
+        }
+        
+        return auth()->user()->can('upload_research_output') && 
+               $record->proposal->user_id === auth()->id() && 
+               $record->verification_status !== 'approved';
+    }
+
+    public static function canView($record): bool
+    {
+        // Admin can view all, dosen can view own outputs
+        if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('pimpinan')) {
+            return true;
+        }
+        
+        return $record->proposal->user_id === auth()->id();
+    }
+
+    // Query scoping berdasarkan role
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('pimpinan')) {
+            return $query;
+        }
+        
+        // Dosen hanya melihat luaran proposal sendiri
+        return $query->whereHas('proposal', function ($q) {
+            $q->where('user_id', auth()->id());
+        });
+    }
 
     public static function form(Form $form): Form
     {

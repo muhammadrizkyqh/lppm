@@ -21,7 +21,34 @@ class ResearchSchemeResource extends Resource
     protected static ?string $navigationLabel = 'Skema Penelitian';
     protected static ?string $modelLabel = 'Skema Penelitian';
     protected static ?string $pluralModelLabel = 'Skema Penelitian';
-    protected static ?string $navigationGroup = 'Manajemen Skema';
+    protected static ?string $navigationGroup = 'PENGATURAN SISTEM';
+    protected static ?int $navigationSort = 1;
+
+    // Permission checking - Admin only
+    public static function canAccess(array $parameters = []): bool
+    {
+        return auth()->user()->can('create_research_scheme');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->can('create_research_scheme');
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()->can('edit_research_scheme');
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()->can('delete_research_scheme');
+    }
+
+    public static function canView($record): bool
+    {
+        return auth()->user()->can('create_research_scheme');
+    }
 
     public static function form(Form $form): Form
     {

@@ -23,7 +23,71 @@ class ProposalResource extends Resource
     protected static ?string $navigationLabel = 'Proposal';
     protected static ?string $modelLabel = 'Proposal';
     protected static ?string $pluralModelLabel = 'Proposal';
-    protected static ?string $navigationGroup = 'Manajemen Proposal';
+    protected static ?string $navigationGroup = 'MANAJEMEN PROPOSAL';
+    protected static ?int $navigationSort = 1;
+
+    // Permission checking methods
+    public static function canAccess(array $parameters = []): bool
+    {
+        return auth()->user()->can('view_proposal');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->can('create_proposal');
+    }
+
+    public static function canEdit($record): bool
+    {
+        // Admin dapat edit semua, dosen hanya proposal sendiri
+        if (auth()->user()->hasRole('admin')) {
+            return auth()->user()->can('edit_proposal');
+        }
+        
+        return auth()->user()->can('edit_proposal') && $record->user_id === auth()->id();
+    }
+
+    public static function canDelete($record): bool
+    {
+        // Hanya admin atau pemilik proposal yang bisa delete (dan proposal masih draft)
+        $canDelete = auth()->user()->hasRole('admin') || $record->user_id === auth()->id();
+        return $canDelete && $record->status === 'draft';
+    }
+
+    public static function canView($record): bool
+    {
+        // Admin dapat lihat semua, reviewer untuk proposal yang ditugaskan, dosen untuk proposal sendiri
+        if (auth()->user()->hasRole('admin')) {
+            return true;
+        }
+        
+        if (auth()->user()->hasRole('reviewer')) {
+            return $record->reviews()->where('reviewer_id', auth()->id())->exists();
+        }
+        
+        return $record->user_id === auth()->id();
+    }
+
+    // Query scoping berdasarkan role
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('pimpinan')) {
+            // Admin dan pimpinan dapat melihat semua proposal
+            return $query;
+        }
+        
+        if (auth()->user()->hasRole('reviewer')) {
+            // Reviewer hanya melihat proposal yang ditugaskan
+            return $query->whereHas('reviews', function ($q) {
+                $q->where('reviewer_id', auth()->id());
+            });
+        }
+        
+        // Dosen hanya melihat proposal sendiri
+        return $query->where('user_id', auth()->id());
+    }
 
     public static function form(Form $form): Form
     {
@@ -120,8 +184,10 @@ class ProposalResource extends Resource
                                 'approved' => 'Disetujui',
                                 'rejected' => 'Ditolak',
                             ])
-                            ->default('draft'),
-                    ]),
+                            ->default('draft')
+                            ->visible(fn () => auth()->user()->can('approve_proposal')),
+                    ])
+                    ->visible(fn () => auth()->user()->hasRole('admin')),
             ]);
     }
 
@@ -197,13 +263,34 @@ class ProposalResource extends Resource
                     ->relationship('researchScheme', 'name'),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->visible(fn ($record) => auth()->user()->can('view_proposal')),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn ($record) => static::canEdit($record)),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn ($record) => static::canDelete($record)),
+                    
+                // Custom actions untuk approve/reject (admin only)
+                Tables\Actions\Action::make('approve')
+                    ->label('Setujui')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->action(fn ($record) => $record->update(['status' => 'approved']))
+                    ->visible(fn ($record) => auth()->user()->can('approve_proposal') && $record->status === 'under_review'),
+                    
+                Tables\Actions\Action::make('reject')
+                    ->label('Tolak')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->action(fn ($record) => $record->update(['status' => 'rejected']))
+                    ->visible(fn ($record) => auth()->user()->can('reject_proposal') && $record->status === 'under_review'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()->hasRole('admin')),
                 ]),
             ]);
     }

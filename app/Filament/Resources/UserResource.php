@@ -22,7 +22,34 @@ class UserResource extends Resource
     protected static ?string $navigationLabel = 'Pengguna';
     protected static ?string $modelLabel = 'Pengguna';
     protected static ?string $pluralModelLabel = 'Pengguna';
-    protected static ?string $navigationGroup = 'Manajemen Pengguna';
+    protected static ?string $navigationGroup = 'PENGATURAN SISTEM';
+    protected static ?int $navigationSort = 2;
+
+    // Permission checking - Admin only
+    public static function canAccess(array $parameters = []): bool
+    {
+        return auth()->user()->can('manage_users');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->can('manage_users');
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()->can('manage_users');
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()->can('manage_users') && $record->id !== auth()->id();
+    }
+
+    public static function canView($record): bool
+    {
+        return auth()->user()->can('manage_users');
+    }
 
     public static function form(Form $form): Form
     {

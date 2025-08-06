@@ -18,6 +18,10 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             ResearchSchemeSeeder::class,
             SampleDataSeeder::class,
+            ProposalTeamMemberSeeder::class,
+            SeminarSeeder::class,
+            PublicationFundingSeeder::class,
+            ContractSeeder::class,
         ]);
     }
 }
