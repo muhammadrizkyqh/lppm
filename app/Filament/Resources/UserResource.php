@@ -12,18 +12,17 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Facades\Hash;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
-    protected static ?string $navigationLabel = 'Pengguna';
-    protected static ?string $modelLabel = 'Pengguna';
-    protected static ?string $pluralModelLabel = 'Pengguna';
-    protected static ?string $navigationGroup = 'PENGATURAN SISTEM';
-    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationLabel = 'User Management';
+    protected static ?string $modelLabel = 'User';
+    protected static ?string $pluralModelLabel = 'Users';
+    protected static ?string $navigationGroup = 'SISTEM';
+    protected static ?int $navigationSort = 1;
 
     // Permission checking - Admin only
     public static function canAccess(array $parameters = []): bool
@@ -43,6 +42,7 @@ class UserResource extends Resource
 
     public static function canDelete($record): bool
     {
+        // Admin tidak bisa delete dirinya sendiri
         return auth()->user()->can('manage_users') && $record->id !== auth()->id();
     }
 
@@ -55,7 +55,7 @@ class UserResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Dasar')
+                Forms\Components\Section::make('Data Pribadi')
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->label('Nama Lengkap')
@@ -72,33 +72,43 @@ class UserResource extends Resource
                         Forms\Components\TextInput::make('password')
                             ->label('Password')
                             ->password()
-                            ->required(fn (string $operation): bool => $operation === 'create')
-                            ->dehydrateStateUsing(fn ($state) => Hash::make($state))
+                            ->required(fn (string $context): bool => $context === 'create')
                             ->dehydrated(fn ($state) => filled($state))
-                            ->revealable(),
-                    ])->columns(2),
-
-                Forms\Components\Section::make('Profil Pengguna')
-                    ->schema([
-                        Forms\Components\Select::make('user_type')
-                            ->label('Tipe Pengguna')
-                            ->options([
-                                'dosen' => 'Dosen Peneliti',
-                                'admin' => 'Admin LPPM',
-                                'reviewer' => 'Reviewer Eksternal',
-                                'pimpinan' => 'Pimpinan Fakultas',
-                            ])
-                            ->required()
-                            ->reactive(),
-
-                        Forms\Components\TextInput::make('nidn')
-                            ->label('NIDN')
-                            ->unique(ignoreRecord: true)
-                            ->visible(fn (callable $get) => $get('user_type') === 'dosen'),
+                            ->maxLength(255),
 
                         Forms\Components\TextInput::make('phone')
                             ->label('No. Telepon')
-                            ->tel(),
+                            ->tel()
+                            ->maxLength(20),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Data Akademik')
+                    ->schema([
+                        Forms\Components\TextInput::make('nidn')
+                            ->label('NIDN')
+                            ->unique(ignoreRecord: true)
+                            ->maxLength(20),
+
+                        Forms\Components\Select::make('user_type')
+                            ->label('Jenis User')
+                            ->options([
+                                'dosen' => 'Dosen',
+                                'admin' => 'Admin',
+                                'reviewer' => 'Reviewer',
+                                'pimpinan' => 'Pimpinan',
+                            ])
+                            ->required()
+                            ->default('dosen'),
+
+                        Forms\Components\Select::make('employment_status')
+                            ->label('Status Kepegawaian')
+                            ->options([
+                                'tetap' => 'Dosen Tetap',
+                                'kontrak' => 'Dosen Kontrak',
+                                'tidak_tetap' => 'Dosen Tidak Tetap',
+                            ])
+                            ->required()
+                            ->default('tetap'),
 
                         Forms\Components\Select::make('functional_position')
                             ->label('Jabatan Fungsional')
@@ -107,35 +117,34 @@ class UserResource extends Resource
                                 'lektor' => 'Lektor',
                                 'lektor_kepala' => 'Lektor Kepala',
                                 'guru_besar' => 'Guru Besar',
-                            ])
-                            ->visible(fn (callable $get) => $get('user_type') === 'dosen'),
+                                'tidak_ada' => 'Belum Ada',
+                            ]),
 
                         Forms\Components\TextInput::make('field_of_study')
-                            ->label('Bidang Keilmuan')
-                            ->visible(fn (callable $get) => $get('user_type') === 'dosen'),
-
-                        Forms\Components\Select::make('employment_status')
-                            ->label('Status Kepegawaian')
-                            ->options([
-                                'tetap' => 'Tetap',
-                                'tidak_tetap' => 'Tidak Tetap',
-                            ])
-                            ->default('tetap')
-                            ->visible(fn (callable $get) => $get('user_type') === 'dosen'),
+                            ->label('Bidang Keahlian')
+                            ->maxLength(255),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Alamat')
+                Forms\Components\Section::make('System & Roles')
+                    ->schema([
+                        Forms\Components\Select::make('roles')
+                            ->label('Role')
+                            ->relationship('roles', 'name')
+                            ->multiple()
+                            ->preload()
+                            ->searchable(),
+
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Status Aktif')
+                            ->default(true),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Informasi Lainnya')
                     ->schema([
                         Forms\Components\Textarea::make('address')
-                            ->label('Alamat Lengkap')
-                            ->rows(3),
-                    ]),
-
-                Forms\Components\Section::make('Status')
-                    ->schema([
-                        Forms\Components\Toggle::make('is_active')
-                            ->label('Aktif')
-                            ->default(true),
+                            ->label('Alamat')
+                            ->rows(3)
+                            ->columnSpanFull(),
                     ]),
             ]);
     }
@@ -145,81 +154,131 @@ class UserResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Nama')
+                    ->label('Nama Lengkap')
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('email')
                     ->label('Email')
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('nidn')
+                    ->label('NIDN')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('user_type')
-                    ->label('Tipe')
+                    ->label('Jenis User')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'admin' => 'danger',
                         'dosen' => 'success',
                         'reviewer' => 'warning',
                         'pimpinan' => 'info',
-                    })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'admin' => 'Admin LPPM',
-                        'dosen' => 'Dosen',
-                        'reviewer' => 'Reviewer',
-                        'pimpinan' => 'Pimpinan',
+                        default => 'gray',
                     }),
 
-                Tables\Columns\TextColumn::make('nidn')
-                    ->label('NIDN')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('roles.name')
+                    ->label('Roles')
+                    ->badge()
+                    ->color('primary')
+                    ->separator(','),
+
+                Tables\Columns\TextColumn::make('employment_status')
+                    ->label('Status Kepegawaian')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'tetap' => 'success',
+                        'kontrak' => 'warning',
+                        'tidak_tetap' => 'danger',
+                        default => 'gray',
+                    }),
 
                 Tables\Columns\TextColumn::make('functional_position')
-                    ->label('Jabatan')
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                    ->label('Jabatan Fungsional')
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'asisten_ahli' => 'Asisten Ahli',
                         'lektor' => 'Lektor',
                         'lektor_kepala' => 'Lektor Kepala',
                         'guru_besar' => 'Guru Besar',
-                        default => '-',
+                        'tidak_ada' => 'Belum Ada',
+                        default => $state ?? '-',
                     }),
+
+                Tables\Columns\TextColumn::make('field_of_study')
+                    ->label('Bidang Keahlian')
+                    ->searchable()
+                    ->limit(30),
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Status')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle'),
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('user_type')
-                    ->label('Tipe Pengguna')
+                    ->label('Jenis User')
                     ->options([
-                        'dosen' => 'Dosen Peneliti',
-                        'admin' => 'Admin LPPM',
-                        'reviewer' => 'Reviewer Eksternal',
-                        'pimpinan' => 'Pimpinan Fakultas',
+                        'dosen' => 'Dosen',
+                        'admin' => 'Admin',
+                        'reviewer' => 'Reviewer',
+                        'pimpinan' => 'Pimpinan',
                     ]),
 
-                Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Status Aktif'),
+                Tables\Filters\SelectFilter::make('employment_status')
+                    ->label('Status Kepegawaian')
+                    ->options([
+                        'tetap' => 'Dosen Tetap',
+                        'kontrak' => 'Dosen Kontrak',
+                        'tidak_tetap' => 'Dosen Tidak Tetap',
+                    ]),
+
+                Tables\Filters\SelectFilter::make('functional_position')
+                    ->label('Jabatan Fungsional')
+                    ->options([
+                        'asisten_ahli' => 'Asisten Ahli',
+                        'lektor' => 'Lektor',
+                        'lektor_kepala' => 'Lektor Kepala',
+                        'guru_besar' => 'Guru Besar',
+                        'tidak_ada' => 'Belum Ada',
+                    ]),
+
+                Tables\Filters\SelectFilter::make('is_active')
+                    ->label('Status')
+                    ->options([
+                        1 => 'Aktif',
+                        0 => 'Tidak Aktif',
+                    ]),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat'),
+                Tables\Actions\EditAction::make()
+                    ->label('Edit'),
+                Tables\Actions\DeleteAction::make()
+                    ->label('Hapus'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->label('Hapus Terpilih'),
                 ]),
-            ]);
+            ])
+            ->emptyStateActions([
+                Tables\Actions\CreateAction::make()
+                    ->label('Tambah User'),
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getRelations(): array

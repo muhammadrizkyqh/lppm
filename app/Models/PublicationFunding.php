@@ -5,6 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+/**
+ * @property int $id
+ * @property int $proposal_id
+ * @property int $user_id
+ * @property string $title
+ * @property string $publication_type
+ * @property string $journal_name
+ * @property string $status
+ * @property float $estimated_cost
+ * @property float $approved_amount
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ */
 class PublicationFunding extends Model
 {
     use HasFactory;

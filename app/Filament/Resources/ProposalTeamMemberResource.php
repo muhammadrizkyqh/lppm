@@ -21,13 +21,13 @@ class ProposalTeamMemberResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationLabel = 'Tim Anggota';
+    protected static ?string $navigationLabel = 'Tim Peneliti';
 
     protected static ?string $modelLabel = 'Anggota Tim Proposal';
 
     protected static ?string $pluralModelLabel = 'Tim Proposal';
 
-    protected static ?string $navigationGroup = 'MANAJEMEN PROPOSAL';
+    protected static ?string $navigationGroup = 'PROPOSAL SAYA';
 
     protected static ?int $navigationSort = 2;
 

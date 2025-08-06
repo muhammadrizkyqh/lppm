@@ -31,9 +31,25 @@ class ContractResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Kontrak';
 
-    protected static ?string $navigationGroup = 'PELAKSANAAN PENELITIAN';
+    protected static ?string $navigationGroup = 'PELAKSANAAN SAYA';
 
     protected static ?int $navigationSort = 1;
+
+    // Dynamic navigation based on role
+    public static function getNavigationGroup(): ?string
+    {
+        return auth()->user()->hasRole('admin') ? 'ADMINISTRASI' : 'PELAKSANAAN SAYA';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return auth()->user()->hasRole('admin') ? 'Kontrak & Pendanaan' : 'Kontrak';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return auth()->user()->hasRole('admin') ? 3 : 1;
+    }
 
     // Permission checking for contract management
     public static function canAccess(array $parameters = []): bool

@@ -31,7 +31,7 @@ class PublicationFundingResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Pendanaan Publikasi';
 
-    protected static ?string $navigationGroup = 'PELAKSANAAN PENELITIAN';
+    protected static ?string $navigationGroup = 'PELAKSANAAN SAYA';
 
     protected static ?int $navigationSort = 3;
 

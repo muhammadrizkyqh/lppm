@@ -8,6 +8,20 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
+/**
+ * @property int $id
+ * @property string $title
+ * @property string $abstract
+ * @property string $keywords
+ * @property string $status
+ * @property int $user_id
+ * @property int $research_scheme_id
+ * @property float $fund_amount
+ * @property string|null $publication_plan
+ * @property \Carbon\Carbon|null $submitted_at
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ */
 class Proposal extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia;
@@ -123,6 +137,14 @@ class Proposal extends Model implements HasMedia
               ->acceptsMimeTypes(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']);
     }
 
+    public function registerMediaConversions(Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+              ->width(150)
+              ->height(150)
+              ->sharpen(10);
+    }
+
     // Scopes
     public function scopeByStatus($query, $status)
     {
@@ -178,5 +200,132 @@ class Proposal extends Model implements HasMedia
     public function getTitleWithResearcherAttribute(): string
     {
         return $this->title . ' - ' . $this->user->name;
+    }
+
+    // Business Rules Validation
+    public static function validateLeaderRules($userId, $year = null)
+    {
+        $year = $year ?: date('Y');
+
+        // Check if user is a permanent lecturer with functional position
+        $user = User::find($userId);
+        if (!$user || $user->user_type !== 'dosen' || $user->employment_status !== 'tetap') {
+            return 'Ketua penelitian harus dosen tetap';
+        }
+
+        if (!$user->functional_position || in_array($user->functional_position, ['tidak_ada', 'non_fungsional'])) {
+            return 'Ketua penelitian harus memiliki jabatan fungsional minimal';
+        }
+
+        // Check total proposals limit (as leader + member = max 4 per year)
+        $totalProposals = self::getTotalProposalsForUser($userId, $year);
+        if ($totalProposals >= 4) {
+            return 'Dosen maksimal dapat terlibat dalam 4 proposal per tahun (sebagai ketua atau anggota)';
+        }
+
+        return null; // Valid
+    }
+
+    public static function validateMemberRules($userId, $year = null)
+    {
+        $year = $year ?: date('Y');
+
+        // Check total proposals limit (as leader + member = max 4 per year)
+        $totalProposals = self::getTotalProposalsForUser($userId, $year);
+        if ($totalProposals >= 4) {
+            return 'Dosen maksimal dapat terlibat dalam 4 proposal per tahun (sebagai ketua atau anggota)';
+        }
+
+        return null; // Valid
+    }
+
+    public static function getTotalProposalsForUser($userId, $year = null)
+    {
+        $year = $year ?: date('Y');
+
+        // Count as leader
+        $asLeader = self::where('user_id', $userId)
+            ->whereYear('created_at', $year)
+            ->where('status', '!=', 'rejected')
+            ->count();
+
+        // Count as member
+        $asMember = ProposalTeamMember::where('user_id', $userId)
+            ->whereHas('proposal', function($q) use ($year) {
+                $q->whereYear('created_at', $year)
+                  ->where('status', '!=', 'rejected');
+            })
+            ->count();
+
+        return $asLeader + $asMember;
+    }
+
+    public static function validateSubmissionPeriod()
+    {
+        return \App\Models\SubmissionPeriod::getValidationMessage();
+    }
+
+    public static function validateStudentMemberRules($studentId, $year = null)
+    {
+        $year = $year ?: date('Y');
+
+        // Check if student exists and is active
+        $student = \App\Models\Student::find($studentId);
+        if (!$student || !$student->is_active) {
+            return 'Mahasiswa tidak ditemukan atau tidak aktif';
+        }
+
+        // Check if student is already in a proposal this year (max 1 proposal per year)
+        $existingMembership = ProposalTeamMember::where('student_id', $studentId)
+            ->whereHas('proposal', function($q) use ($year) {
+                $q->whereYear('created_at', $year)
+                  ->where('status', '!=', 'rejected');
+            })
+            ->count();
+
+        if ($existingMembership >= 1) {
+            return 'Mahasiswa sudah terdaftar dalam proposal lain tahun ini. Maksimal 1 proposal per tahun.';
+        }
+
+        return null; // Valid
+    }
+
+    public static function validateTeamComposition($currentLeaderId, $teamMembers = [])
+    {
+        // Check total team size (including leader)
+        $totalMembers = count($teamMembers) + 1; // +1 for leader
+
+        if ($totalMembers > 4) {
+            return 'Tim maksimal terdiri dari 4 orang (1 ketua + 3 anggota)';
+        }
+
+        // Check for duplicate members
+        $memberIds = [];
+        $studentIds = [];
+
+        foreach ($teamMembers as $member) {
+            // Check if leader is not included as member
+            if (isset($member['user_id']) && $member['user_id'] == $currentLeaderId) {
+                return 'Ketua tim tidak boleh ditambahkan sebagai anggota';
+            }
+
+            // Check for duplicate dosen
+            if (isset($member['user_id']) && in_array($member['user_id'], $memberIds)) {
+                return 'Dosen tidak boleh diduplikasi dalam tim';
+            }
+            if (isset($member['user_id'])) {
+                $memberIds[] = $member['user_id'];
+            }
+
+            // Check for duplicate student
+            if (isset($member['student_id']) && in_array($member['student_id'], $studentIds)) {
+                return 'Mahasiswa tidak boleh diduplikasi dalam tim';
+            }
+            if (isset($member['student_id'])) {
+                $studentIds[] = $member['student_id'];
+            }
+        }
+
+        return null; // Valid
     }
 }

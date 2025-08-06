@@ -20,11 +20,11 @@ class ReviewResource extends Resource
     protected static ?string $model = Review::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
-    protected static ?string $navigationLabel = 'Review Proposal';
+    protected static ?string $navigationLabel = 'Review & Evaluasi';
     protected static ?string $modelLabel = 'Review';
     protected static ?string $pluralModelLabel = 'Review';
-    protected static ?string $navigationGroup = 'REVIEW & EVALUASI';
-    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationGroup = 'ADMINISTRASI';
+    protected static ?int $navigationSort = 2;
 
     // Permission checking for reviewers and admin
     public static function canAccess(array $parameters = []): bool

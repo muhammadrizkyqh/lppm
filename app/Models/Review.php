@@ -5,6 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+/**
+ * @property int $id
+ * @property int $proposal_id
+ * @property int $reviewer_id
+ * @property int $relevance_score
+ * @property int $methodology_score
+ * @property int $originality_score
+ * @property int $feasibility_score
+ * @property float $total_score
+ * @property string $status
+ * @property string $recommendation
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ */
 class Review extends Model
 {
     use HasFactory;

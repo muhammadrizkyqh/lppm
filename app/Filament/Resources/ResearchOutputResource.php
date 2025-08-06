@@ -22,8 +22,8 @@ class ResearchOutputResource extends Resource
     protected static ?string $navigationLabel = 'Luaran Penelitian';
     protected static ?string $modelLabel = 'Luaran Penelitian';
     protected static ?string $pluralModelLabel = 'Luaran Penelitian';
-    protected static ?string $navigationGroup = 'LUARAN & PUBLIKASI';
-    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationGroup = 'PELAKSANAAN SAYA';
+    protected static ?int $navigationSort = 4;
 
     // Permission checking for research outputs
     public static function canAccess(array $parameters = []): bool

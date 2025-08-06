@@ -12,6 +12,7 @@ class ProposalTeamMember extends Model
     protected $fillable = [
         'proposal_id',
         'user_id',
+        'student_id',
         'name',
         'nidn',
         'nim',
@@ -35,5 +36,31 @@ class ProposalTeamMember extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function student()
+    {
+        return $this->belongsTo(Student::class);
+    }
+
+    // Helper methods
+    public function getMemberName()
+    {
+        if ($this->member_type === 'dosen' && $this->user) {
+            return $this->user->name;
+        } elseif ($this->member_type === 'mahasiswa' && $this->student) {
+            return $this->student->name;
+        }
+        return $this->name;
+    }
+
+    public function getMemberIdentifier()
+    {
+        if ($this->member_type === 'dosen' && $this->user) {
+            return $this->user->nidn;
+        } elseif ($this->member_type === 'mahasiswa' && $this->student) {
+            return $this->student->nim;
+        }
+        return $this->nidn ?: $this->nim;
     }
 }

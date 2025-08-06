@@ -21,7 +21,7 @@ class ResearchSchemeResource extends Resource
     protected static ?string $navigationLabel = 'Skema Penelitian';
     protected static ?string $modelLabel = 'Skema Penelitian';
     protected static ?string $pluralModelLabel = 'Skema Penelitian';
-    protected static ?string $navigationGroup = 'PENGATURAN SISTEM';
+    protected static ?string $navigationGroup = 'MASTER DATA';
     protected static ?int $navigationSort = 1;
 
     // Permission checking - Admin only

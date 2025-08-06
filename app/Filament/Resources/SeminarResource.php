@@ -33,7 +33,7 @@ class SeminarResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Seminar';
 
-    protected static ?string $navigationGroup = 'PELAKSANAAN PENELITIAN';
+    protected static ?string $navigationGroup = 'PELAKSANAAN SAYA';
 
     protected static ?int $navigationSort = 2;
 

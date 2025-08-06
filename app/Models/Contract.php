@@ -5,6 +5,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+/**
+ * @property int $id
+ * @property string $contract_number
+ * @property int $proposal_id
+ * @property string $title
+ * @property string $type
+ * @property string $description
+ * @property float $contract_value
+ * @property string $status
+ * @property \Carbon\Carbon $start_date
+ * @property \Carbon\Carbon $end_date
+ * @property \Carbon\Carbon|null $signed_at
+ * @property \Carbon\Carbon|null $second_party_signed_at
+ * @property string|null $signed_by_first_party
+ * @property int|null $created_by
+ * @property int|null $approved_by
+ * @property \Carbon\Carbon|null $approved_at
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ */
 class Contract extends Model
 {
     use HasFactory;

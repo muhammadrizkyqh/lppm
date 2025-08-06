@@ -15,10 +15,10 @@ return new class extends Migration
             $table->string('nidn')->nullable()->unique();
             $table->string('phone')->nullable();
             $table->enum('user_type', ['dosen', 'admin', 'reviewer', 'pimpinan'])->default('dosen');
-            $table->enum('functional_position', ['asisten_ahli', 'lektor', 'lektor_kepala', 'guru_besar'])->nullable();
+            $table->enum('functional_position', ['asisten_ahli', 'lektor', 'lektor_kepala', 'guru_besar', 'profesor', 'tenaga_pengajar', 'tidak_ada'])->nullable();
             $table->string('field_of_study')->nullable();
             $table->text('address')->nullable();
-            $table->enum('employment_status', ['tetap', 'tidak_tetap'])->default('tetap');
+            $table->enum('employment_status', ['tetap', 'tidak_tetap', 'kontrak', 'honorer'])->default('tetap');
             $table->boolean('is_active')->default(true);
         });
     }

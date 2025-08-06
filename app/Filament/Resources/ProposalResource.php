@@ -7,6 +7,7 @@ use App\Filament\Resources\ProposalResource\RelationManagers;
 use App\Models\Proposal;
 use App\Models\ResearchScheme;
 use App\Models\User;
+use App\Models\Student;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -14,17 +15,34 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 
 class ProposalResource extends Resource
 {
     protected static ?string $model = Proposal::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    protected static ?string $navigationLabel = 'Proposal';
+    protected static ?string $navigationLabel = 'Daftar Proposal';
     protected static ?string $modelLabel = 'Proposal';
     protected static ?string $pluralModelLabel = 'Proposal';
-    protected static ?string $navigationGroup = 'MANAJEMEN PROPOSAL';
+    protected static ?string $navigationGroup = 'PROPOSAL SAYA';
     protected static ?int $navigationSort = 1;
+
+    // Dynamic navigation based on role
+    public static function getNavigationGroup(): ?string
+    {
+        return auth()->user()->hasRole('admin') ? 'ADMINISTRASI' : 'PROPOSAL SAYA';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return auth()->user()->hasRole('admin') ? 'Semua Proposal' : 'Daftar Proposal';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return auth()->user()->hasRole('admin') ? 1 : 1;
+    }
 
     // Permission checking methods
     public static function canAccess(array $parameters = []): bool
@@ -117,9 +135,33 @@ class ProposalResource extends Resource
 
                         Forms\Components\Select::make('user_id')
                             ->label('Ketua Tim')
-                            ->options(User::where('user_type', 'dosen')->where('is_active', true)->pluck('name', 'id'))
+                            ->options(User::where('user_type', 'dosen')
+                                ->where('employment_status', 'tetap')
+                                ->where('is_active', true)
+                                ->whereNotNull('functional_position')
+                                ->whereNotIn('functional_position', ['tidak_ada', 'non_fungsional'])
+                                ->pluck('name', 'id'))
+                            ->default(auth()->id())
                             ->required()
-                            ->searchable(),
+                            ->searchable()
+                            ->disabled(fn() => !auth()->user()->hasRole('admin'))
+                            ->helperText(auth()->user()->hasRole('admin')
+                                ? 'Admin dapat memilih ketua tim, dosen otomatis menjadi ketua'
+                                : 'Anda akan menjadi ketua tim proposal ini')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, $get) {
+                                if ($state) {
+                                    $validationError = Proposal::validateLeaderRules($state);
+                                    if ($validationError) {
+                                        $set('user_id', null);
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Validasi Gagal')
+                                            ->body($validationError)
+                                            ->danger()
+                                            ->send();
+                                    }
+                                }
+                            }),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Abstrak dan Kata Kunci')
@@ -150,9 +192,154 @@ class ProposalResource extends Resource
                             ->rows(3),
                     ])->columns(2),
 
+                Forms\Components\Section::make('Tim Anggota')
+                    ->schema([
+                        Forms\Components\Repeater::make('teamMembers')
+                            ->relationship('teamMembers')
+                            ->schema([
+                                Forms\Components\Select::make('member_type')
+                                    ->label('Jenis Anggota')
+                                    ->options([
+                                        'dosen' => 'Dosen',
+                                        'mahasiswa' => 'Mahasiswa',
+                                    ])
+                                    ->required()
+                                    ->reactive()
+                                    ->columnSpan(1),
+
+                                Forms\Components\Select::make('user_id')
+                                    ->label('Pilih Dosen')
+                                    ->options(User::where('user_type', 'dosen')
+                                        ->where('is_active', true)
+                                        ->pluck('name', 'id'))
+                                    ->searchable()
+                                    ->visible(fn (callable $get) => $get('member_type') === 'dosen')
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $set, $get) {
+                                        if ($state) {
+                                            $validationError = Proposal::validateMemberRules($state);
+                                            if ($validationError) {
+                                                $set('user_id', null);
+                                                \Filament\Notifications\Notification::make()
+                                                    ->title('Validasi Anggota Gagal')
+                                                    ->body($validationError)
+                                                    ->danger()
+                                                    ->send();
+                                            } else {
+                                                $user = User::find($state);
+                                                if ($user) {
+                                                    $set('name', $user->name);
+                                                    $set('nidn', $user->nidn);
+                                                    $set('email', $user->email);
+                                                    $set('phone', $user->phone);
+                                                    $set('position', $user->functional_position);
+                                                    $set('expertise', $user->field_of_study);
+                                                }
+                                            }
+                                        }
+                                    })
+                                    ->columnSpan(1),
+
+                                Forms\Components\Select::make('student_id')
+                                    ->label('Pilih Mahasiswa')
+                                    ->options(Student::active()->pluck('name', 'id'))
+                                    ->searchable()
+                                    ->visible(fn (callable $get) => $get('member_type') === 'mahasiswa')
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $set) {
+                                        if ($state) {
+                                            $validationError = Proposal::validateStudentMemberRules($state);
+                                            if ($validationError) {
+                                                $set('student_id', null);
+                                                \Filament\Notifications\Notification::make()
+                                                    ->title('Validasi Mahasiswa Gagal')
+                                                    ->body($validationError)
+                                                    ->danger()
+                                                    ->send();
+                                            } else {
+                                                $student = Student::find($state);
+                                                if ($student) {
+                                                    $set('name', $student->name);
+                                                    $set('nim', $student->nim);
+                                                    $set('email', $student->email);
+                                                    $set('phone', $student->phone);
+                                                    $set('study_program', $student->study_program);
+                                                    $set('semester', $student->semester);
+                                                }
+                                            }
+                                        }
+                                    })
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Nama')
+                                    ->required()
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('nidn')
+                                    ->label('NIDN')
+                                    ->visible(fn (callable $get) => $get('member_type') === 'dosen')
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('nim')
+                                    ->label('NIM')
+                                    ->visible(fn (callable $get) => $get('member_type') === 'mahasiswa')
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('position')
+                                    ->label('Jabatan Fungsional')
+                                    ->visible(fn (callable $get) => $get('member_type') === 'dosen')
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('expertise')
+                                    ->label('Bidang Keahlian')
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('study_program')
+                                    ->label('Program Studi')
+                                    ->visible(fn (callable $get) => $get('member_type') === 'mahasiswa')
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('semester')
+                                    ->label('Semester')
+                                    ->numeric()
+                                    ->visible(fn (callable $get) => $get('member_type') === 'mahasiswa')
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('email')
+                                    ->label('Email')
+                                    ->email()
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('phone')
+                                    ->label('No. HP')
+                                    ->columnSpan(1),
+                            ])
+                            ->columns(2)
+                            ->addActionLabel('Tambah Anggota Tim')
+                            ->maxItems(3)
+                            ->reorderableWithButtons()
+                            ->collapsible()
+                            ->helperText('Batasan Tim: Maksimal 4 orang (1 ketua + 3 anggota). Dosen maksimal 4 proposal/tahun, Mahasiswa maksimal 1 proposal/tahun. Tidak boleh ada duplikasi anggota.')
+                            ->itemLabel(function (array $state): ?string {
+                                $name = $state['name'] ?? 'Anggota Baru';
+                                $type = $state['member_type'] ?? '';
+                                $identifier = '';
+
+                                if ($type === 'dosen' && isset($state['nidn'])) {
+                                    $identifier = " (NIDN: {$state['nidn']})";
+                                } elseif ($type === 'mahasiswa' && isset($state['nim'])) {
+                                    $identifier = " (NIM: {$state['nim']})";
+                                }
+
+                                return $name . $identifier;
+                            }),
+                    ]),
+
                 Forms\Components\Section::make('Upload Dokumen')
                     ->schema([
-                        Forms\Components\FileUpload::make('proposal_documents')
+                        SpatieMediaLibraryFileUpload::make('proposal_documents')
+                            ->collection('proposal_documents')
                             ->label('Dokumen Proposal Lengkap')
                             ->acceptedFileTypes(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
                             ->maxSize(10240) // 10MB
@@ -161,7 +348,8 @@ class ProposalResource extends Resource
                             ->previewable()
                             ->helperText('Upload dokumen proposal dalam format PDF atau Word (maksimal 10MB)'),
 
-                        Forms\Components\FileUpload::make('final_reports')
+                        SpatieMediaLibraryFileUpload::make('final_reports')
+                            ->collection('final_reports')
                             ->label('Laporan Akhir')
                             ->acceptedFileTypes(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
                             ->maxSize(10240)
