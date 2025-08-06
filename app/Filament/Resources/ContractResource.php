@@ -52,7 +52,7 @@ class ContractResource extends Resource
         if (auth()->user()->hasRole('admin')) {
             return auth()->user()->can('confirm_fund_stage_1');
         }
-        
+
         return $record->proposal->user_id === auth()->id();
     }
 
@@ -67,7 +67,7 @@ class ContractResource extends Resource
         if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('pimpinan')) {
             return true;
         }
-        
+
         return $record->proposal->user_id === auth()->id();
     }
 
@@ -75,11 +75,11 @@ class ContractResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        
+
         if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('pimpinan')) {
             return $query;
         }
-        
+
         // Dosen hanya melihat kontrak proposal sendiri
         return $query->whereHas('proposal', function ($q) {
             $q->where('user_id', auth()->id());

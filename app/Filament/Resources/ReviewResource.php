@@ -43,7 +43,7 @@ class ReviewResource extends Resource
         if (auth()->user()->hasRole('admin')) {
             return auth()->user()->can('assign_reviewer');
         }
-        
+
         return auth()->user()->can('conduct_review') && $record->reviewer_id === auth()->id();
     }
 
@@ -58,7 +58,7 @@ class ReviewResource extends Resource
         if (auth()->user()->hasRole('admin')) {
             return true;
         }
-        
+
         return $record->reviewer_id === auth()->id();
     }
 
@@ -66,12 +66,12 @@ class ReviewResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        
+
         if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('pimpinan')) {
             // Admin dan pimpinan dapat melihat semua review
             return $query;
         }
-        
+
         // Reviewer hanya melihat review yang ditugaskan
         return $query->where('reviewer_id', auth()->id());
     }

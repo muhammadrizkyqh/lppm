@@ -42,7 +42,7 @@ class ResearchOutputResource extends Resource
         if (auth()->user()->hasRole('admin')) {
             return auth()->user()->can('verify_research_output');
         }
-        
+
         return auth()->user()->can('upload_research_output') && $record->proposal->user_id === auth()->id();
     }
 
@@ -52,9 +52,9 @@ class ResearchOutputResource extends Resource
         if (auth()->user()->hasRole('admin')) {
             return auth()->user()->can('verify_research_output');
         }
-        
-        return auth()->user()->can('upload_research_output') && 
-               $record->proposal->user_id === auth()->id() && 
+
+        return auth()->user()->can('upload_research_output') &&
+               $record->proposal->user_id === auth()->id() &&
                $record->verification_status !== 'approved';
     }
 
@@ -64,7 +64,7 @@ class ResearchOutputResource extends Resource
         if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('pimpinan')) {
             return true;
         }
-        
+
         return $record->proposal->user_id === auth()->id();
     }
 
@@ -72,11 +72,11 @@ class ResearchOutputResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        
+
         if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('pimpinan')) {
             return $query;
         }
-        
+
         // Dosen hanya melihat luaran proposal sendiri
         return $query->whereHas('proposal', function ($q) {
             $q->where('user_id', auth()->id());

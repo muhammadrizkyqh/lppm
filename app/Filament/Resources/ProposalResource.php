@@ -43,7 +43,7 @@ class ProposalResource extends Resource
         if (auth()->user()->hasRole('admin')) {
             return auth()->user()->can('edit_proposal');
         }
-        
+
         return auth()->user()->can('edit_proposal') && $record->user_id === auth()->id();
     }
 
@@ -60,11 +60,11 @@ class ProposalResource extends Resource
         if (auth()->user()->hasRole('admin')) {
             return true;
         }
-        
+
         if (auth()->user()->hasRole('reviewer')) {
             return $record->reviews()->where('reviewer_id', auth()->id())->exists();
         }
-        
+
         return $record->user_id === auth()->id();
     }
 
@@ -72,19 +72,19 @@ class ProposalResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        
+
         if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('pimpinan')) {
             // Admin dan pimpinan dapat melihat semua proposal
             return $query;
         }
-        
+
         if (auth()->user()->hasRole('reviewer')) {
             // Reviewer hanya melihat proposal yang ditugaskan
             return $query->whereHas('reviews', function ($q) {
                 $q->where('reviewer_id', auth()->id());
             });
         }
-        
+
         // Dosen hanya melihat proposal sendiri
         return $query->where('user_id', auth()->id());
     }
@@ -269,7 +269,7 @@ class ProposalResource extends Resource
                     ->visible(fn ($record) => static::canEdit($record)),
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn ($record) => static::canDelete($record)),
-                    
+
                 // Custom actions untuk approve/reject (admin only)
                 Tables\Actions\Action::make('approve')
                     ->label('Setujui')
@@ -278,7 +278,7 @@ class ProposalResource extends Resource
                     ->requiresConfirmation()
                     ->action(fn ($record) => $record->update(['status' => 'approved']))
                     ->visible(fn ($record) => auth()->user()->can('approve_proposal') && $record->status === 'under_review'),
-                    
+
                 Tables\Actions\Action::make('reject')
                     ->label('Tolak')
                     ->icon('heroicon-o-x-circle')

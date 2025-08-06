@@ -53,7 +53,7 @@ class SeminarResource extends Resource
         if (auth()->user()->hasRole('admin')) {
             return auth()->user()->can('schedule_seminar');
         }
-        
+
         return $record->proposal->user_id === auth()->id();
     }
 
@@ -67,18 +67,18 @@ class SeminarResource extends Resource
         if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('pimpinan')) {
             return true;
         }
-        
+
         return $record->proposal->user_id === auth()->id();
     }
 
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        
+
         if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('pimpinan')) {
             return $query;
         }
-        
+
         return $query->whereHas('proposal', function ($q) {
             $q->where('user_id', auth()->id());
         });
